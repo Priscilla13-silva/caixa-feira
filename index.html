@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Controle de Caixa Diário</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <div class="header-icon">🍗</div>
+  <div><h1>Controle de Caixa Diário</h1><p>Barraca de Frango</p></div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('lancar')">Lançar</button>
+  <button class="tab-btn" onclick="switchTab('historico')">Histórico</button>
+  <button class="tab-btn" onclick="switchTab('poupanca')">Poupança</button>
+  <button class="tab-btn" onclick="switchTab('resumo')">Resumo</button>
+</div>
+
+<!-- ABA LANÇAR -->
+<div id="tab-lancar" class="tab-content active">
+<div class="wrap">
+
+  <div class="card">
+    <div class="section-title">Data do caixa</div>
+    <div class="row2">
+      <div class="field" style="margin-bottom:0">
+        <label>Data</label>
+        <input type="date" id="f-date" oninput="onDateChange()" />
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Dia da semana</div>
+        <div class="day-badge" id="day-badge">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Saldo anterior em conta</div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Valor em conta (R$)</label>
+      <input type="text" id="saldo-conta" placeholder="R$ 0,00" inputmode="numeric" oninput="mascara(this);calcTotais()" />
+    </div>
+    <div class="metric">
+      <div class="metric-label">Saldo anterior</div>
+      <div class="metric-value blue" id="disp-saldo-conta">R$ 0,00</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Entradas do dia</div>
+    <div class="row2" style="margin-bottom:12px">
+      <div class="field" style="margin-bottom:0">
+        <label>Maquina Marluce (R$)</label>
+        <input type="text" id="vendas-marluce" placeholder="R$ 0,00" inputmode="numeric" oninput="mascara(this);calcTotais()" />
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Maquina Priscilla (R$)</label>
+        <input type="text" id="vendas-priscilla" placeholder="R$ 0,00" inputmode="numeric" oninput="mascara(this);calcTotais()" />
+      </div>
+    </div>
+    <div class="row3">
+      <div class="metric">
+        <div class="metric-label">Maq. Marluce</div>
+        <div class="metric-value green" id="disp-marluce">R$ 0,00</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Maq. Priscilla</div>
+        <div class="metric-value green" id="disp-priscilla">R$ 0,00</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Total de entradas</div>
+        <div class="metric-value green" id="disp-entradas">R$ 0,00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem">
+      <div class="section-title" style="margin-bottom:0">Saídas</div>
+      <button class="btn btn-sm" onclick="toggleEdit()">✏️ Editar motivos</button>
+    </div>
+    <div class="edit-panel" id="edit-panel">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:.625rem">Clique × para remover. <span style="color:var(--purple);font-weight:500">Poupança</span> é fixo e sempre aparece.</div>
+      <div class="tags" id="tags-list"></div>
+      <div class="edit-add">
+        <input type="text" id="new-motivo" placeholder="Novo motivo..." onkeydown="if(event.key==='Enter')addMotivo()" />
+        <button class="btn btn-primary btn-sm" onclick="addMotivo()">Adicionar</button>
+      </div>
+    </div>
+    <div id="saidas-list"></div>
+    <hr class="divider" />
+    <div class="total-row">
+      <span>Total de saídas</span>
+      <span id="disp-saidas" style="color:var(--red)">R$ 0,00</span>
+    </div>
+    <div class="total-row">
+      <span>Poupança do dia</span>
+      <span id="disp-poupanca-dia" style="color:var(--purple)">R$ 0,00</span>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--surface)">
+    <div class="section-title">Resumo do dia</div>
+    <div class="total-row"><span>Saldo anterior em conta</span><span id="res-saldo-ant">R$ 0,00</span></div>
+    <div class="total-row"><span>+ Total de entradas</span><span id="res-entradas" style="color:var(--green)">R$ 0,00</span></div>
+    <div class="total-row"><span>− Total de saídas</span><span id="res-saidas" style="color:var(--red)">R$ 0,00</span></div>
+    <div class="total-row"><span>− Poupança</span><span id="res-poup" style="color:var(--purple)">R$ 0,00</span></div>
+    <hr class="divider" style="margin:.5rem 0" />
+    <div class="highlight-row">
+      <span>Saldo atualizado</span>
+      <span id="res-saldo-final" class="blue">R$ 0,00</span>
+    </div>
+    <div class="highlight-purple">
+      <span>Total na poupança</span>
+      <span id="res-saldo-poupanca">R$ 0,00</span>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" style="width:100%;padding:13px;font-size:15px" onclick="salvarDia()">Salvar caixa do dia</button>
+  <div class="save-msg" id="save-msg"></div>
+
+</div>
+</div>
+
+<!-- ABA HISTÓRICO -->
+<div id="tab-historico" class="tab-content">
+<div class="wrap">
+  <div class="hist-header">
+    <div style="font-size:15px;font-weight:600">Todos os dias</div>
+    <input type="month" id="hist-filter" onchange="renderHistorico()" />
+  </div>
+  <div id="hist-list"></div>
+</div>
+</div>
+
+<!-- ABA POUPANÇA -->
+<div id="tab-poupanca" class="tab-content">
+<div class="wrap">
+  <div class="poup-header">
+    <div class="poup-saldo-label">Total acumulado na poupança</div>
+    <div class="poup-saldo-value" id="poup-total">R$ 0,00</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Registrar movimentação manual</div>
+    <div class="row2" style="margin-bottom:12px">
+      <div class="field" style="margin-bottom:0">
+        <label>Data</label>
+        <input type="date" id="poup-data" />
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Tipo</label>
+        <select id="poup-tipo">
+          <option value="entrada">Entrada (depósito)</option>
+          <option value="saida">Saída (retirada)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Valor (R$)</label>
+      <input type="text" id="poup-valor" placeholder="R$ 0,00" inputmode="numeric" oninput="mascara(this)" />
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Motivo / descrição</label>
+      <select id="poup-motivo"><option value="">— selecione —</option></select>
+    </div>
+    <button class="btn btn-purple" style="width:100%;padding:10px" onclick="salvarMovPoupanca()">Registrar na poupança</button>
+    <div class="save-msg" id="poup-save-msg"></div>
+  </div>
+
+  <div id="poup-lista"></div>
+</div>
+</div>
+
+<!-- ABA RESUMO -->
+<div id="tab-resumo" class="tab-content">
+<div class="wrap">
+  <div class="card">
+    <div class="section-title">Totais gerais</div>
+    <div class="resumo-grid">
+      <div class="resumo-card"><div class="resumo-label">Total de entradas</div><div class="resumo-value green" id="res-total-entradas">R$ 0,00</div></div>
+      <div class="resumo-card"><div class="resumo-label">Total de saídas</div><div class="resumo-value red" id="res-total-saidas">R$ 0,00</div></div>
+      <div class="resumo-card"><div class="resumo-label">Total poupado (caixas)</div><div class="resumo-value purple" id="res-total-poupado">R$ 0,00</div></div>
+      <div class="resumo-card"><div class="resumo-label">Saldo poupança atual</div><div class="resumo-value purple" id="res-saldo-poup-atual">R$ 0,00</div></div>
+      <div class="resumo-card"><div class="resumo-label">Dias registrados</div><div class="resumo-value blue" id="res-total-dias">0</div></div>
+      <div class="resumo-card"><div class="resumo-label">Média de entradas/dia</div><div class="resumo-value blue" id="res-media">R$ 0,00</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Total por motivo de saída</div>
+    <div id="res-por-motivo"></div>
+  </div>
+  <div class="card">
+    <div class="section-title">Maquinas — total de entradas</div>
+    <div class="row2">
+      <div class="metric"><div class="metric-label">Maquina Marluce</div><div class="metric-value green" id="res-marluce-total">R$ 0,00</div></div>
+      <div class="metric"><div class="metric-label">Maquina Priscilla</div><div class="metric-value green" id="res-priscilla-total">R$ 0,00</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
