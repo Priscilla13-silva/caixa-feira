@@ -344,6 +344,9 @@ let saidasVals={};
 let saidasDesc={};
 let editMode=false;
 
+// garante que Outros sempre existe, mesmo em dados antigos
+if(!motivos.includes('Outros')){motivos.push('Outros');try{localStorage.setItem('frango-motivos',JSON.stringify(motivos));}catch(e){}}
+
 function fmt(v){return 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function val(id){return unmasked(document.getElementById(id).value);}
 function unmasked(v){return parseFloat((v||'').replace(/[^0-9]/g,''))/100||0;}
@@ -558,12 +561,12 @@ function calcSaldoPoupanca(){
 
 function atualizarSelectPoupanca(){
   const sel=document.getElementById('poup-motivo');
-  const opts=[...motivos,'Rendimento','Resgate parcial','Outro'];
+  const opts=[...motivos,'Rendimento','Resgate parcial','Outros'];
   sel.innerHTML='<option value="">— selecione —</option>'+opts.map(o=>`<option>${o}</option>`).join('');
 }
 
 function togglePoupOutros(sel){
-  document.getElementById('poup-outros-wrap').style.display=sel.value==='Outro'?'block':'none';
+  document.getElementById('poup-outros-wrap').style.display=sel.value==='Outros'?'block':'none';
 }
 
 function salvarMovPoupanca(){
@@ -572,7 +575,7 @@ function salvarMovPoupanca(){
   const valor=unmasked(document.getElementById('poup-valor').value);
   const motivo=document.getElementById('poup-motivo').value||'—';
   const outrosDesc=document.getElementById('poup-outros-desc')?document.getElementById('poup-outros-desc').value.trim():'';
-  const motivoFinal=motivo==='Outro'&&outrosDesc?`Outro: ${outrosDesc}`:motivo;
+  const motivoFinal=motivo==='Outros'&&outrosDesc?`Outros: ${outrosDesc}`:motivo;
   if(!date||!valor){alert('Informe data e valor.');return;}
   const movs=getPoupMovs();
   movs.push({id:Date.now()+'',date,tipo,valor,motivo:motivoFinal,auto:false});
@@ -718,15 +721,40 @@ function renderResumo(){
   const days=getAllDays();
   let totE=0,totS=0,totM=0,totP=0,totPoup=0;
   const porMotivo={};
+  const detalhesOutros=[];
+
+  // saídas do caixa
   days.forEach(d=>{
     totM+=(d.vendasMarluce||0);totP+=(d.vendasPriscilla||0);
     totE+=(d.vendasMarluce||0)+(d.vendasPriscilla||0);
     Object.entries(d.saidas||{}).forEach(([k,v])=>{
       const n=parseFloat(v)||0;
       if(k===POUPANCA)totPoup+=n;
-      else{totS+=n;porMotivo[k]=(porMotivo[k]||0)+n;}
+      else{
+        totS+=n;
+        porMotivo[k]=(porMotivo[k]||0)+n;
+        if(k==='Outros'&&n>0){
+          const desc=(d.saidasDesc&&d.saidasDesc['Outros'])?d.saidasDesc['Outros']:'sem descrição';
+          detalhesOutros.push({origem:'Caixa',desc,valor:n,date:d.date});
+        }
+      }
     });
   });
+
+  // todos os registros da poupança com motivo Outros (entrada ou saída)
+  getPoupMovs().forEach(m=>{
+    const mot=m.motivo||'';
+    if(mot==='Outros'||mot.startsWith('Outros:')){
+      const desc=mot.startsWith('Outros:')?mot.replace('Outros:','').trim():'sem descrição';
+      const tipo=m.tipo==='entrada'?'Entrada':'Saída';
+      detalhesOutros.push({origem:`Poupança (${tipo})`,desc,valor:m.valor,date:m.date});
+      porMotivo['Outros']=(porMotivo['Outros']||0)+m.valor;
+    }
+  });
+
+  // ordena por data
+  detalhesOutros.sort((a,b)=>b.date.localeCompare(a.date));
+
   document.getElementById('res-total-entradas').textContent=fmt(totE);
   document.getElementById('res-total-saidas').textContent=fmt(totS);
   document.getElementById('res-total-poupado').textContent=fmt(totPoup);
@@ -735,10 +763,25 @@ function renderResumo(){
   document.getElementById('res-media').textContent=days.length?fmt(totE/days.length):fmt(0);
   document.getElementById('res-marluce-total').textContent=fmt(totM);
   document.getElementById('res-priscilla-total').textContent=fmt(totP);
+
   const sorted=Object.entries(porMotivo).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   const el=document.getElementById('res-por-motivo');
   if(!sorted.length){el.innerHTML='<div style="font-size:13px;color:var(--text-muted);padding:.5rem 0">Nenhuma saída ainda.</div>';return;}
-  el.innerHTML=sorted.map(([k,v])=>`<div class="hist-saida-row"><span>${k}</span><span>${fmt(v)}</span></div>`).join('');
+  el.innerHTML=sorted.map(([k,v])=>{
+    let extra='';
+    if(k==='Outros'&&detalhesOutros.length){
+      extra='<div style="padding:4px 0 6px 12px">'+
+        detalhesOutros.map(o=>{
+          const isPoup=o.origem.startsWith('Poupança');
+          const badge=isPoup
+            ?`<span style="font-size:10px;background:var(--purple-bg);color:var(--purple-text);border-radius:99px;padding:1px 6px;margin-right:4px">${o.origem}</span>`
+            :`<span style="font-size:10px;background:#E6F1FB;color:var(--blue);border-radius:99px;padding:1px 6px;margin-right:4px">Caixa</span>`;
+          return `<div style="font-size:12px;color:var(--text-muted);padding:3px 0;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${badge}${o.date.split('-').reverse().join('/')}: ${o.desc}<span style="margin-left:auto;font-weight:500">${fmt(o.valor)}</span></div>`;
+        }).join('')+
+      '</div>';
+    }
+    return `<div class="hist-saida-row"><span>${k}</span><span>${fmt(v)}</span></div>${extra}`;
+  }).join('');
 }
 
 // INIT
@@ -752,5 +795,191 @@ atualizarSelectPoupanca();
 const now=new Date();
 document.getElementById('hist-filter').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 </script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, deleteDoc, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyArB7HC2zhSWUNQCiy-bAETdqwuHZZyj3I",
+  authDomain: "caixa-feira-b932b.firebaseapp.com",
+  projectId: "caixa-feira-b932b",
+  storageBucket: "caixa-feira-b932b.firebasestorage.app",
+  messagingSenderId: "2411322884",
+  appId: "1:2411322884:web:5ad3dcf9f4e9b2ed025f51",
+  measurementId: "G-W0LC3JTZFS"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ---- Substituir localStorage por Firestore ----
+
+// Migrar dados do localStorage para o Firestore (primeira vez)
+async function migrarLocalStorage(){
+  const migrado = localStorage.getItem('frango-migrado-firestore');
+  if(migrado) return;
+  console.log('Migrando dados do localStorage para o Firestore...');
+
+  // Migrar caixas
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('frango-caixa-')){
+      try{
+        const data=JSON.parse(localStorage.getItem(k));
+        await setDoc(doc(db,'caixas',data.date),data);
+      }catch(e){console.error('Erro migrando caixa:',e);}
+    }
+  }
+
+  // Migrar poupança
+  try{
+    const movs=JSON.parse(localStorage.getItem('frango-poup-movs')||'[]');
+    for(const m of movs){
+      await setDoc(doc(db,'poupanca',m.id),m);
+    }
+  }catch(e){console.error('Erro migrando poupança:',e);}
+
+  // Migrar motivos
+  try{
+    const mot=JSON.parse(localStorage.getItem('frango-motivos')||'null');
+    if(mot) await setDoc(doc(db,'config','motivos'),{lista:mot});
+  }catch(e){}
+
+  localStorage.setItem('frango-migrado-firestore','1');
+  console.log('Migração concluída!');
+}
+
+// Sobrescrever funções de acesso a dados
+
+// Salvar/ler motivos
+window.saveMotivos = async function(){
+  try{
+    await setDoc(doc(db,'config','motivos'),{lista:motivos});
+    localStorage.setItem('frango-motivos',JSON.stringify(motivos));
+  }catch(e){localStorage.setItem('frango-motivos',JSON.stringify(motivos));}
+};
+
+// Salvar dia
+window.salvarDia = async function(){
+  const date=document.getElementById('f-date').value;
+  if(!date){alert('Informe a data do caixa.');return;}
+  const poupDia=parseFloat(saidasVals[POUPANCA]||0);
+  const data={
+    date,day:document.getElementById('day-badge').textContent,
+    saldoConta:val('saldo-conta'),
+    vendasMarluce:val('vendas-marluce'),
+    vendasPriscilla:val('vendas-priscilla'),
+    saidas:{...saidasVals},
+    saidasDesc:{...saidasDesc}
+  };
+  try{
+    await setDoc(doc(db,'caixas',date),data);
+    localStorage.setItem('frango-caixa-'+date,JSON.stringify(data));
+  }catch(e){localStorage.setItem('frango-caixa-'+date,JSON.stringify(data));}
+
+  const movs=getPoupMovs().filter(m=>!(m.date===date&&m.auto));
+  if(poupDia>0){
+    const novoMov={id:date+'-auto',date,tipo:'entrada',valor:poupDia,motivo:'Caixa do dia',auto:true};
+    movs.push(novoMov);
+    try{ await setDoc(doc(db,'poupanca',novoMov.id),novoMov); }catch(e){}
+  } else {
+    try{ await deleteDoc(doc(db,'poupanca',date+'-auto')); }catch(e){}
+  }
+  savePoupMovs(movs);
+
+  const msg=document.getElementById('save-msg');
+  msg.textContent='Caixa de '+date.split('-').reverse().join('/')+' salvo com sucesso!';
+  setTimeout(()=>msg.textContent='',4000);
+  calcTotais();
+};
+
+// Salvar movimentação poupança
+window.salvarMovPoupanca = async function(){
+  const date=document.getElementById('poup-data').value;
+  const tipo=document.getElementById('poup-tipo').value;
+  const valor=unmasked(document.getElementById('poup-valor').value);
+  const motivo=document.getElementById('poup-motivo').value||'—';
+  const outrosDesc=document.getElementById('poup-outros-desc')?document.getElementById('poup-outros-desc').value.trim():'';
+  const motivoFinal=motivo==='Outros'&&outrosDesc?`Outros: ${outrosDesc}`:motivo;
+  if(!date||!valor){alert('Informe data e valor.');return;}
+  const novoMov={id:Date.now()+'',date,tipo,valor,motivo:motivoFinal,auto:false};
+  const movs=getPoupMovs();
+  movs.push(novoMov);
+  try{ await setDoc(doc(db,'poupanca',novoMov.id),novoMov); }catch(e){}
+  savePoupMovs(movs);
+  document.getElementById('poup-valor').value='';
+  document.getElementById('poup-motivo').value='';
+  if(document.getElementById('poup-outros-desc'))document.getElementById('poup-outros-desc').value='';
+  document.getElementById('poup-outros-wrap').style.display='none';
+  const msg=document.getElementById('poup-save-msg');
+  msg.textContent='Registrado com sucesso!';
+  setTimeout(()=>msg.textContent='',3000);
+  renderPoupanca();calcTotais();
+};
+
+// Deletar dia
+window.deleteDia = async function(date){
+  if(!confirm('Excluir o caixa de '+date.split('-').reverse().join('/')+'?'))return;
+  try{ await deleteDoc(doc(db,'caixas',date)); }catch(e){}
+  localStorage.removeItem('frango-caixa-'+date);
+  const movs=getPoupMovs().filter(m=>!(m.date===date&&m.auto));
+  try{ await deleteDoc(doc(db,'poupanca',date+'-auto')); }catch(e){}
+  savePoupMovs(movs);
+  renderHistorico();renderResumo();
+};
+
+// Deletar movimentação poupança
+window.deletePoupMov = async function(id){
+  if(!confirm('Excluir esta movimentação?'))return;
+  try{ await deleteDoc(doc(db,'poupanca',id)); }catch(e){}
+  savePoupMovs(getPoupMovs().filter(m=>m.id!==id));
+  renderPoupanca();calcTotais();
+};
+
+// Carregar todos os dados do Firestore
+async function carregarDadosFirestore(){
+  try{
+    // Carregar motivos
+    const motDoc=await getDoc(doc(db,'config','motivos'));
+    if(motDoc.exists()){
+      const lista=motDoc.data().lista||[];
+      if(!lista.includes('Outros'))lista.push('Outros');
+      motivos.length=0;
+      lista.forEach(m=>motivos.push(m));
+      localStorage.setItem('frango-motivos',JSON.stringify(motivos));
+    }
+
+    // Carregar caixas
+    const caixasSnap=await getDocs(collection(db,'caixas'));
+    caixasSnap.forEach(d=>{
+      localStorage.setItem('frango-caixa-'+d.id,JSON.stringify(d.data()));
+    });
+
+    // Carregar poupança
+    const poupSnap=await getDocs(collection(db,'poupanca'));
+    const movs=[];
+    poupSnap.forEach(d=>movs.push(d.data()));
+    localStorage.setItem('frango-poup-movs',JSON.stringify(movs));
+
+    // Atualizar UI
+    onDateChange();
+    renderSaidas();
+    calcTotais();
+    atualizarSelectPoupanca();
+    renderHistorico();
+    renderPoupanca();
+    renderResumo();
+    console.log('Dados carregados do Firestore!');
+  }catch(e){
+    console.error('Erro carregando do Firestore:',e);
+  }
+}
+
+// Iniciar
+await migrarLocalStorage();
+await carregarDadosFirestore();
+</script>
+
 </body>
 </html>
