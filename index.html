@@ -4,6 +4,19 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Controle de Caixa Diário</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#185FA5" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Caixa Feira" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('/caixa-feira/sw.js');
+    });
+  }
+</script>
 <style>
   :root {
     --bg:#f5f4f0;--card:#ffffff;--border:rgba(0,0,0,0.1);--border-strong:rgba(0,0,0,0.2);
