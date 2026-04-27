@@ -132,8 +132,46 @@
     .resumo-grid{grid-template-columns:1fr}
   }
 </style>
+<style>
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
+#login-screen.hide{display:none;}
+.login-card{background:var(--card);border:.5px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:320px;text-align:center;}
+.login-icon{font-size:40px;margin-bottom:1rem;}
+.login-title{font-size:18px;font-weight:600;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text-muted);margin-bottom:1.5rem;}
+.login-input{width:100%;background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:22px;text-align:center;letter-spacing:8px;color:var(--text);outline:none;font-family:inherit;margin-bottom:1rem;}
+.login-input:focus{border-color:var(--blue);}
+.login-error{color:var(--red);font-size:13px;min-height:20px;margin-bottom:.5rem;}
+</style>
 </head>
 <body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon">🍗</div>
+    <div class="login-title">Controle de Caixa</div>
+    <div class="login-sub">Digite a senha para acessar</div>
+    <input class="login-input" type="password" id="login-input" maxlength="10" placeholder="••••" onkeydown="if(event.key==='Enter')checkLogin()" />
+    <div class="login-error" id="login-error"></div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px" onclick="checkLogin()">Entrar</button>
+  </div>
+</div>
+
+<script>
+function checkLogin(){
+  const v=document.getElementById('login-input').value;
+  if(v==='4360'){
+    document.getElementById('login-screen').classList.add('hide');
+    sessionStorage.setItem('caixa-auth','1');
+  } else {
+    document.getElementById('login-error').textContent='Senha incorreta. Tente novamente.';
+    document.getElementById('login-input').value='';
+  }
+}
+if(sessionStorage.getItem('caixa-auth')==='1'){
+  document.getElementById('login-screen').classList.add('hide');
+}
+</script>
 
 <header>
   <div class="header-icon">🍗</div>
