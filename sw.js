@@ -1,20 +1,17 @@
-const CACHE_NAME = 'caixa-feira-v1';
-const urlsToCache = [
-  '/caixa-feira/',
-  '/caixa-feira/index.html',
-  '/caixa-feira/manifest.json'
-];
+const CACHE_NAME = 'caixa-feira-v3';
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+    caches.keys().then(keys =>
+      Promise.all(keys.map(key => caches.delete(key)))
+    ).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
-  );
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
 });
