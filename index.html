@@ -23,6 +23,7 @@
     --text:#1a1a1a;--text-muted:#6b6b6b;--text-hint:#aaa;--surface:#f0efe9;
     --blue:#185FA5;--blue-dark:#0C447C;--green:#3B6D11;--red:#A32D2D;
     --purple:#534AB7;--purple-bg:#EEEDFE;--purple-text:#3C3489;
+    --orange:#B85C00;--orange-bg:#FFF0E0;--orange-text:#8A4200;
     --radius:10px;--radius-sm:7px;
   }
   @media (prefers-color-scheme:dark){
@@ -31,6 +32,7 @@
       --text:#f0f0f0;--text-muted:#999;--text-hint:#555;--surface:#2e2e2e;
       --blue:#5B9FE5;--blue-dark:#85B7EB;--green:#7DC44A;--red:#E06060;
       --purple:#AFA9EC;--purple-bg:#26215C;--purple-text:#CECBF6;
+      --orange:#E8954A;--orange-bg:#2D1F0A;--orange-text:#F0B87A;
     }
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -128,6 +130,10 @@
   .poup-header{background:var(--purple-bg);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
   .poup-saldo-label{font-size:12px;color:var(--purple-text);margin-bottom:4px}
   .poup-saldo-value{font-size:28px;font-weight:700;color:var(--purple)}
+  .reserva-header{background:var(--orange-bg);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+  .reserva-saldo-label{font-size:12px;color:var(--orange-text);margin-bottom:4px}
+  .reserva-saldo-value{font-size:28px;font-weight:700;color:var(--orange)}
+  .btn-orange{background:var(--orange);color:#fff;border-color:var(--orange)}
   .poup-item{background:var(--card);border:.5px solid var(--border);border-radius:var(--radius);margin-bottom:.75rem;overflow:hidden}
   .poup-item-header{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;cursor:pointer;gap:10px}
   .poup-item-header:hover{background:var(--surface)}
@@ -195,6 +201,7 @@ if(sessionStorage.getItem('caixa-auth')==='1'){
   <button class="tab-btn active" onclick="switchTab('lancar')">Lançar</button>
   <button class="tab-btn" onclick="switchTab('historico')">Histórico</button>
   <button class="tab-btn" onclick="switchTab('poupanca')">Poupança</button>
+  <button class="tab-btn" onclick="switchTab('reserva')">Reserva Carro</button>
   <button class="tab-btn" onclick="switchTab('resumo')">Resumo</button>
 </div>
 
@@ -279,6 +286,10 @@ if(sessionStorage.getItem('caixa-auth')==='1'){
       <span>Poupança do dia</span>
       <span id="disp-poupanca-dia" style="color:var(--purple)">R$ 0,00</span>
     </div>
+    <div class="total-row">
+      <span>Reserva Carro do dia</span>
+      <span id="disp-reserva-dia" style="color:var(--orange)">R$ 0,00</span>
+    </div>
   </div>
 
   <div class="card" style="background:var(--surface)">
@@ -287,6 +298,7 @@ if(sessionStorage.getItem('caixa-auth')==='1'){
     <div class="total-row"><span>+ Total de entradas</span><span id="res-entradas" style="color:var(--green)">R$ 0,00</span></div>
     <div class="total-row"><span>− Total de saídas</span><span id="res-saidas" style="color:var(--red)">R$ 0,00</span></div>
     <div class="total-row"><span>− Poupança</span><span id="res-poup" style="color:var(--purple)">R$ 0,00</span></div>
+    <div class="total-row"><span>− Reserva Carro</span><span id="res-reserva" style="color:var(--orange)">R$ 0,00</span></div>
     <hr class="divider" style="margin:.5rem 0" />
     <div class="highlight-row">
       <span>Saldo atualizado</span>
@@ -295,6 +307,10 @@ if(sessionStorage.getItem('caixa-auth')==='1'){
     <div class="highlight-purple">
       <span>Total na poupança</span>
       <span id="res-saldo-poupanca">R$ 0,00</span>
+    </div>
+    <div class="highlight-row" style="background:var(--orange-bg);margin-top:8px">
+      <span style="color:var(--orange-text)">Total na Reserva Carro</span>
+      <span id="res-saldo-reserva" style="color:var(--orange)">R$ 0,00</span>
     </div>
   </div>
 
@@ -358,6 +374,34 @@ if(sessionStorage.getItem('caixa-auth')==='1'){
 </div>
 </div>
 
+<!-- ABA RESERVA CARRO -->
+<div id="tab-reserva" class="tab-content">
+<div class="wrap">
+  <div class="reserva-header">
+    <div class="reserva-saldo-label">🚗 Total acumulado na Reserva Carro</div>
+    <div class="reserva-saldo-value" id="reserva-total">R$ 0,00</div>
+  </div>
+  <div class="card">
+    <div class="section-title">Registrar movimentação manual</div>
+    <div class="row2" style="margin-bottom:12px">
+      <div class="field" style="margin-bottom:0"><label>Data</label><input type="date" id="reserva-data" /></div>
+      <div class="field" style="margin-bottom:0">
+        <label>Tipo</label>
+        <select id="reserva-tipo">
+          <option value="entrada">Entrada (depósito)</option>
+          <option value="saida">Saída (retirada)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Valor (R$)</label><input type="text" id="reserva-valor" placeholder="R$ 0,00" inputmode="numeric" oninput="mascara(this)" /></div>
+    <div class="field" style="margin-bottom:12px"><label>Motivo / descrição</label><input type="text" id="reserva-motivo-desc" placeholder="Ex: Manutenção, combustível..." /></div>
+    <button class="btn btn-orange" style="width:100%;padding:10px" onclick="salvarMovReserva()">🚗 Registrar na Reserva Carro</button>
+    <div class="save-msg" id="reserva-save-msg"></div>
+  </div>
+  <div id="reserva-lista"></div>
+</div>
+</div>
+
 <!-- ABA RESUMO -->
 <div id="tab-resumo" class="tab-content">
 <div class="wrap">
@@ -368,6 +412,7 @@ if(sessionStorage.getItem('caixa-auth')==='1'){
       <div class="resumo-card"><div class="resumo-label">Total de saídas</div><div class="resumo-value red" id="res-total-saidas">R$ 0,00</div></div>
       <div class="resumo-card"><div class="resumo-label">Total poupado (caixas)</div><div class="resumo-value purple" id="res-total-poupado">R$ 0,00</div></div>
       <div class="resumo-card"><div class="resumo-label">Saldo poupança atual</div><div class="resumo-value purple" id="res-saldo-poup-atual">R$ 0,00</div></div>
+      <div class="resumo-card"><div class="resumo-label">Saldo Reserva Carro</div><div class="resumo-value" style="color:var(--orange)" id="res-saldo-reserva-resumo">R$ 0,00</div></div>
       <div class="resumo-card"><div class="resumo-label">Dias registrados</div><div class="resumo-value blue" id="res-total-dias">0</div></div>
       <div class="resumo-card"><div class="resumo-label">Média de entradas/dia</div><div class="resumo-value blue" id="res-media">R$ 0,00</div></div>
     </div>
@@ -389,13 +434,13 @@ if(sessionStorage.getItem('caixa-auth')==='1'){
 <script>
 const DIAS=['Domingo','Segunda-Feira','Terça-Feira','Quarta-Feira','Quinta-Feira','Sexta-Feira','Sábado'];
 const POUPANCA='Poupança';
+const RESERVA='Reserva Carro';
 let motivos=JSON.parse(localStorage.getItem('frango-motivos')||'null')||
   ['Janete','Água','Luz','Internet','Bruno','Cartão','MEI','Boleto Barraca','Murilo','Sueli','Simone','Mercado','Paulo','TIM','Outros'];
 let saidasVals={};
 let saidasDesc={};
 let editMode=false;
 
-// garante que Outros sempre existe, mesmo em dados antigos
 if(!motivos.includes('Outros')){motivos.push('Outros');try{localStorage.setItem('frango-motivos',JSON.stringify(motivos));}catch(e){}}
 
 function fmt(v){return 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -414,15 +459,16 @@ function mascaraSaida(el,idx){
   saidasVals[m]=n>0?n:'';
   calcTotais();
 }
-function allMotivos(){return [...motivos,POUPANCA];}
+function allMotivos(){return [...motivos,POUPANCA,RESERVA];}
 
 function switchTab(name){
-  const ns=['lancar','historico','poupanca','resumo'];
+  const ns=['lancar','historico','poupanca','reserva','resumo'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',ns[i]===name));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='historico')renderHistorico();
   if(name==='poupanca')renderPoupanca();
+  if(name==='reserva')renderReserva();
   if(name==='resumo')renderResumo();
 }
 
@@ -435,14 +481,15 @@ function onDateChange(){
 }
 
 function calcSaldoDia(d){
-  // retorna o saldo atualizado de um dia salvo
   const entradas=(d.vendasMarluce||0)+(d.vendasPriscilla||0);
-  let saidas=0,poup=0;
+  let saidas=0,poup=0,reserva=0;
   Object.entries(d.saidas||{}).forEach(([k,v])=>{
     const n=parseFloat(v)||0;
-    if(k===POUPANCA) poup+=n; else saidas+=n;
+    if(k===POUPANCA) poup+=n;
+    else if(k===RESERVA) reserva+=n;
+    else saidas+=n;
   });
-  return (d.saldoConta||0)+entradas-saidas-poup;
+  return (d.saldoConta||0)+entradas-saidas-poup-reserva;
 }
 
 function getDiaAnterior(date){
@@ -480,41 +527,50 @@ function calcTotais(){
   const sc=val('saldo-conta');
   const vm=val('vendas-marluce'),vp=val('vendas-priscilla');
   const entradas=vm+vp;
-  let saidas=0,poupDia=0;
+  let saidas=0,poupDia=0,reservaDia=0;
   allMotivos().forEach(m=>{
     const n=parseFloat(saidasVals[m]||0);
-    if(m===POUPANCA)poupDia+=n; else saidas+=n;
+    if(m===POUPANCA)poupDia+=n;
+    else if(m===RESERVA)reservaDia+=n;
+    else saidas+=n;
   });
-  // saldo poupança = movimentos salvos (exceto automático do dia atual) + valor digitado agora
   const datePoup=document.getElementById('f-date').value;
   const saldoPoupSalvo=getPoupMovs()
     .filter(m=>!(m.date===datePoup&&m.auto))
     .reduce((s,m)=>s+(m.tipo==='entrada'?m.valor:-m.valor),0);
   const saldoPoup=saldoPoupSalvo+poupDia;
+  const saldoReservaSalvo=getReservaMovs()
+    .filter(m=>!(m.date===datePoup&&m.auto))
+    .reduce((s,m)=>s+(m.tipo==='entrada'?m.valor:-m.valor),0);
+  const saldoReserva=saldoReservaSalvo+reservaDia;
   document.getElementById('disp-saldo-conta').textContent=fmt(sc);
   document.getElementById('disp-marluce').textContent=fmt(vm);
   document.getElementById('disp-priscilla').textContent=fmt(vp);
   document.getElementById('disp-entradas').textContent=fmt(entradas);
   document.getElementById('disp-saidas').textContent=fmt(saidas);
   document.getElementById('disp-poupanca-dia').textContent=fmt(poupDia);
+  document.getElementById('disp-reserva-dia').textContent=fmt(reservaDia);
   document.getElementById('res-saldo-ant').textContent=fmt(sc);
   document.getElementById('res-entradas').textContent=fmt(entradas);
   document.getElementById('res-saidas').textContent=fmt(saidas);
   document.getElementById('res-poup').textContent=fmt(poupDia);
-  const final=sc+entradas-saidas-poupDia;
+  document.getElementById('res-reserva').textContent=fmt(reservaDia);
+  const final=sc+entradas-saidas-poupDia-reservaDia;
   const el=document.getElementById('res-saldo-final');
   el.textContent=fmt(final);
   el.style.color=final<0?'var(--red)':'var(--blue)';
   document.getElementById('res-saldo-poupanca').textContent=fmt(saldoPoup);
+  document.getElementById('res-saldo-reserva').textContent=fmt(saldoReserva);
 }
 
 function renderSaidas(){
   const todos=allMotivos();
   document.getElementById('saidas-list').innerHTML=todos.map((m,i)=>{
     const isPoup=m===POUPANCA;
+    const isReserva=m===RESERVA;
     const isOutros=m==='Outros';
-    const badge=isPoup?'<span class="saida-poup-tag">poupança</span>':'';
-    const cls=isPoup?'saida-input poup-input':'saida-input';
+    const badge=isPoup?'<span class="saida-poup-tag">poupança</span>':isReserva?'<span class="saida-poup-tag" style="background:var(--orange-bg);color:var(--orange-text);border-color:var(--orange)">reserva carro</span>':'';
+    const cls=(isPoup||isReserva)?'saida-input poup-input':'saida-input';
     const descExtra=isOutros?`
     <div class="outros-desc" id="outros-desc-wrap" style="display:${saidasVals[m]>0?'block':'none'};margin-top:6px;padding-left:2px">
       <input type="text" placeholder="Descreva o motivo..." style="width:100%;background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit"
@@ -572,6 +628,7 @@ function salvarDia(){
   const date=document.getElementById('f-date').value;
   if(!date){alert('Informe a data do caixa.');return;}
   const poupDia=parseFloat(saidasVals[POUPANCA]||0);
+  const reservaDia=parseFloat(saidasVals[RESERVA]||0);
   const data={
     date,day:document.getElementById('day-badge').textContent,
     saldoConta:val('saldo-conta'),
@@ -582,15 +639,19 @@ function salvarDia(){
   };
   try{localStorage.setItem('frango-caixa-'+date,JSON.stringify(data));}catch(e){}
   // registrar automaticamente na poupança
-  const movs=getPoupMovs().filter(m=>!(m.date===date&&m.auto));
-  if(poupDia>0)movs.push({id:date+'-auto',date,tipo:'entrada',valor:poupDia,motivo:'Caixa do dia',auto:true});
-  savePoupMovs(movs);
+  const movsPoup=getPoupMovs().filter(m=>!(m.date===date&&m.auto));
+  if(poupDia>0)movsPoup.push({id:date+'-auto',date,tipo:'entrada',valor:poupDia,motivo:'Caixa do dia',auto:true});
+  savePoupMovs(movsPoup);
+  // registrar automaticamente na reserva carro
+  const movsReserva=getReservaMovs().filter(m=>!(m.date===date&&m.auto));
+  if(reservaDia>0)movsReserva.push({id:date+'-auto',date,tipo:'entrada',valor:reservaDia,motivo:'Caixa do dia',auto:true});
+  saveReservaMovs(movsReserva);
   const msg=document.getElementById('save-msg');
   msg.textContent='Caixa de '+date.split('-').reverse().join('/')+' salvo com sucesso!';
   setTimeout(()=>msg.textContent='',4000);
   calcTotais();
-  // atualizar aba poupança se estiver visível ou para refletir no próximo acesso
   if(document.getElementById('tab-poupanca').classList.contains('active')) renderPoupanca();
+  if(document.getElementById('tab-reserva').classList.contains('active')) renderReserva();
 }
 
 function getSavedDay(date){try{const r=localStorage.getItem('frango-caixa-'+date);return r?JSON.parse(r):null;}catch(e){return null;}}
@@ -645,6 +706,74 @@ function deletePoupMov(id){
   if(!confirm('Excluir esta movimentação?'))return;
   savePoupMovs(getPoupMovs().filter(m=>m.id!==id));
   renderPoupanca();calcTotais();
+}
+
+// RESERVA CARRO
+function getReservaMovs(){try{return JSON.parse(localStorage.getItem('frango-reserva-movs')||'[]');}catch(e){return[];}}
+function saveReservaMovs(movs){try{localStorage.setItem('frango-reserva-movs',JSON.stringify(movs));}catch(e){}}
+function calcSaldoReserva(){let s=0;getReservaMovs().forEach(m=>{s+=m.tipo==='entrada'?m.valor:-m.valor;});return s;}
+
+function salvarMovReserva(){
+  const date=document.getElementById('reserva-data').value;
+  const tipo=document.getElementById('reserva-tipo').value;
+  const valor=unmasked(document.getElementById('reserva-valor').value);
+  const motivo=document.getElementById('reserva-motivo-desc').value.trim()||'—';
+  if(!date||!valor){alert('Informe data e valor.');return;}
+  const movs=getReservaMovs();
+  movs.push({id:Date.now()+'',date,tipo,valor,motivo,auto:false});
+  saveReservaMovs(movs);
+  document.getElementById('reserva-valor').value='';
+  document.getElementById('reserva-motivo-desc').value='';
+  const msg=document.getElementById('reserva-save-msg');
+  msg.textContent='Registrado com sucesso!';
+  setTimeout(()=>msg.textContent='',3000);
+  renderReserva();calcTotais();
+}
+
+function deleteReservaMov(id){
+  if(!confirm('Excluir esta movimentação?'))return;
+  saveReservaMovs(getReservaMovs().filter(m=>m.id!==id));
+  renderReserva();calcTotais();
+}
+
+function toggleReservaItem(id){
+  document.getElementById('rb-'+id).classList.toggle('open');
+  document.getElementById('rc-'+id).classList.toggle('open');
+}
+
+function renderReserva(){
+  const movs=getReservaMovs().sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('reserva-total').textContent=fmt(calcSaldoReserva());
+  const lista=document.getElementById('reserva-lista');
+  if(!movs.length){lista.innerHTML='<div class="hist-empty">Nenhuma movimentação ainda.</div>';return;}
+  let ac=0;const saldoMap={};
+  [...movs].reverse().forEach(m=>{ac+=m.tipo==='entrada'?m.valor:-m.valor;saldoMap[m.id]=ac;});
+  lista.innerHTML=movs.map(m=>{
+    const dateF=m.date.split('-').reverse().join('/');
+    const [y,mo,d]=m.date.split('-').map(Number);
+    const dia=DIAS[new Date(y,mo-1,d).getDay()];
+    const isE=m.tipo==='entrada';
+    return `<div class="poup-item">
+      <div class="poup-item-header" onclick="toggleReservaItem('${m.id}')">
+        <div class="hist-date-info">
+          <div class="hist-date">${dateF}</div>
+          <div class="hist-weekday">${dia}${m.auto?' <span style="font-size:10px;color:var(--orange)">(automático)</span>':''}</div>
+        </div>
+        <div class="hist-badges">
+          <span class="badge ${isE?'badge-green':'badge-red'}">${isE?'+':'−'} ${fmt(m.valor)}</span>
+          <span class="badge" style="background:var(--orange-bg);color:var(--orange-text)">Saldo ${fmt(saldoMap[m.id])}</span>
+        </div>
+        <span class="hist-chevron" id="rc-${m.id}">▼</span>
+      </div>
+      <div class="poup-item-body" id="rb-${m.id}">
+        <div class="hist-row"><span>Tipo</span><span style="color:${isE?'var(--green)':'var(--red)'}">${isE?'Entrada':'Saída'}</span></div>
+        <div class="hist-row"><span>Valor</span><span>${fmt(m.valor)}</span></div>
+        <div class="hist-row"><span>Motivo</span><span>${m.motivo}</span></div>
+        <div class="hist-row"><span>Saldo após</span><span style="color:var(--orange)">${fmt(saldoMap[m.id])}</span></div>
+        ${!m.auto?`<div class="hist-actions"><button class="btn btn-sm btn-danger" onclick="deleteReservaMov('${m.id}')">🗑 Excluir</button></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function togglePoupItem(id){
@@ -715,10 +844,14 @@ function renderHistorico(){
   list.innerHTML=days.map(d=>{
     const entradas=(d.vendasMarluce||0)+(d.vendasPriscilla||0);
     const sc=d.saldoConta||0;
-    let saidas=0,poupDia=0;
+    let saidas=0,poupDia=0,reservaDia=0;
     const entries=Object.entries(d.saidas||{}).filter(([,v])=>parseFloat(v)>0);
-    entries.forEach(([k,v])=>{if(k===POUPANCA)poupDia+=parseFloat(v);else saidas+=parseFloat(v);});
-    const saldoFinal=sc+entradas-saidas-poupDia;
+    entries.forEach(([k,v])=>{
+      if(k===POUPANCA)poupDia+=parseFloat(v);
+      else if(k===RESERVA)reservaDia+=parseFloat(v);
+      else saidas+=parseFloat(v);
+    });
+    const saldoFinal=sc+entradas-saidas-poupDia-reservaDia;
     const dateF=d.date.split('-').reverse().join('/');
     const semPoup=entries.filter(([k])=>k!==POUPANCA);
     const saidasHTML=semPoup.length
@@ -734,6 +867,7 @@ function renderHistorico(){
           <span class="badge badge-green">+ ${fmt(entradas)}</span>
           <span class="badge badge-red">− ${fmt(saidas)}</span>
           ${poupDia>0?`<span class="badge badge-purple">poup ${fmt(poupDia)}</span>`:''}
+          ${reservaDia>0?`<span class="badge" style="background:var(--orange-bg);color:var(--orange-text)">🚗 ${fmt(reservaDia)}</span>`:''}
           <span class="badge badge-blue">${fmt(saldoFinal)}</span>
         </div>
         <span class="hist-chevron" id="hchev-${d.date}">▼</span>
@@ -758,6 +892,10 @@ function renderHistorico(){
           <div class="hist-section-title">Poupança</div>
           <div class="hist-row"><span>Depositado</span><span class="purple">${fmt(poupDia)}</span></div>
         </div>`:''}
+        ${reservaDia>0?`<div class="hist-section">
+          <div class="hist-section-title">Reserva Carro</div>
+          <div class="hist-row"><span>Depositado</span><span style="color:var(--orange)">${fmt(reservaDia)}</span></div>
+        </div>`:''}
         <div class="hist-total"><span>Saldo atualizado</span><span style="color:${saldoFinal<0?'var(--red)':'var(--blue)'}">${fmt(saldoFinal)}</span></div>
         <div class="hist-actions">
           <button class="btn btn-sm" onclick="editarDia('${d.date}')">✏️ Editar</button>
@@ -770,17 +908,17 @@ function renderHistorico(){
 
 function renderResumo(){
   const days=getAllDays();
-  let totE=0,totS=0,totM=0,totP=0,totPoup=0;
+  let totE=0,totS=0,totM=0,totP=0,totPoup=0,totReserva=0;
   const porMotivo={};
   const detalhesOutros=[];
 
-  // saídas do caixa
   days.forEach(d=>{
     totM+=(d.vendasMarluce||0);totP+=(d.vendasPriscilla||0);
     totE+=(d.vendasMarluce||0)+(d.vendasPriscilla||0);
     Object.entries(d.saidas||{}).forEach(([k,v])=>{
       const n=parseFloat(v)||0;
       if(k===POUPANCA)totPoup+=n;
+      else if(k===RESERVA)totReserva+=n;
       else{
         totS+=n;
         porMotivo[k]=(porMotivo[k]||0)+n;
@@ -792,7 +930,6 @@ function renderResumo(){
     });
   });
 
-  // todos os registros da poupança com motivo Outros (entrada ou saída)
   getPoupMovs().forEach(m=>{
     const mot=m.motivo||'';
     if(mot==='Outros'||mot.startsWith('Outros:')){
@@ -803,13 +940,13 @@ function renderResumo(){
     }
   });
 
-  // ordena por data
   detalhesOutros.sort((a,b)=>b.date.localeCompare(a.date));
 
   document.getElementById('res-total-entradas').textContent=fmt(totE);
   document.getElementById('res-total-saidas').textContent=fmt(totS);
   document.getElementById('res-total-poupado').textContent=fmt(totPoup);
   document.getElementById('res-saldo-poup-atual').textContent=fmt(calcSaldoPoupanca());
+  document.getElementById('res-saldo-reserva-resumo').textContent=fmt(calcSaldoReserva());
   document.getElementById('res-total-dias').textContent=days.length;
   document.getElementById('res-media').textContent=days.length?fmt(totE/days.length):fmt(0);
   document.getElementById('res-marluce-total').textContent=fmt(totM);
@@ -839,6 +976,7 @@ function renderResumo(){
 const today=new Date().toISOString().split('T')[0];
 document.getElementById('f-date').value=today;
 document.getElementById('poup-data').value=today;
+document.getElementById('reserva-data').value=today;
 onDateChange();
 renderSaidas();
 calcTotais();
@@ -916,6 +1054,7 @@ window.salvarDia = async function(){
   const date=document.getElementById('f-date').value;
   if(!date){alert('Informe a data do caixa.');return;}
   const poupDia=parseFloat(saidasVals[POUPANCA]||0);
+  const reservaDia=parseFloat(saidasVals[RESERVA]||0);
   const data={
     date,day:document.getElementById('day-badge').textContent,
     saldoConta:val('saldo-conta'),
@@ -929,15 +1068,27 @@ window.salvarDia = async function(){
     localStorage.setItem('frango-caixa-'+date,JSON.stringify(data));
   }catch(e){localStorage.setItem('frango-caixa-'+date,JSON.stringify(data));}
 
-  const movs=getPoupMovs().filter(m=>!(m.date===date&&m.auto));
+  // poupança
+  const movsPoup=getPoupMovs().filter(m=>!(m.date===date&&m.auto));
   if(poupDia>0){
-    const novoMov={id:date+'-auto',date,tipo:'entrada',valor:poupDia,motivo:'Caixa do dia',auto:true};
-    movs.push(novoMov);
-    try{ await setDoc(doc(db,'poupanca',novoMov.id),novoMov); }catch(e){}
+    const nm={id:date+'-auto',date,tipo:'entrada',valor:poupDia,motivo:'Caixa do dia',auto:true};
+    movsPoup.push(nm);
+    try{await setDoc(doc(db,'poupanca',nm.id),nm);}catch(e){}
   } else {
-    try{ await deleteDoc(doc(db,'poupanca',date+'-auto')); }catch(e){}
+    try{await deleteDoc(doc(db,'poupanca',date+'-auto'));}catch(e){}
   }
-  savePoupMovs(movs);
+  savePoupMovs(movsPoup);
+
+  // reserva carro
+  const movsReserva=getReservaMovs().filter(m=>!(m.date===date&&m.auto));
+  if(reservaDia>0){
+    const nm={id:date+'-auto',date,tipo:'entrada',valor:reservaDia,motivo:'Caixa do dia',auto:true};
+    movsReserva.push(nm);
+    try{await setDoc(doc(db,'reserva',nm.id),nm);}catch(e){}
+  } else {
+    try{await deleteDoc(doc(db,'reserva',date+'-auto'));}catch(e){}
+  }
+  saveReservaMovs(movsReserva);
 
   const msg=document.getElementById('save-msg');
   msg.textContent='Caixa de '+date.split('-').reverse().join('/')+' salvo com sucesso!';
@@ -988,6 +1139,34 @@ window.deletePoupMov = async function(id){
   renderPoupanca();calcTotais();
 };
 
+// Salvar movimentação Reserva Carro
+window.salvarMovReserva = async function(){
+  const date=document.getElementById('reserva-data').value;
+  const tipo=document.getElementById('reserva-tipo').value;
+  const valor=unmasked(document.getElementById('reserva-valor').value);
+  const motivo=document.getElementById('reserva-motivo-desc').value.trim()||'—';
+  if(!date||!valor){alert('Informe data e valor.');return;}
+  const novoMov={id:Date.now()+'',date,tipo,valor,motivo,auto:false};
+  const movs=getReservaMovs();
+  movs.push(novoMov);
+  try{await setDoc(doc(db,'reserva',novoMov.id),novoMov);}catch(e){}
+  saveReservaMovs(movs);
+  document.getElementById('reserva-valor').value='';
+  document.getElementById('reserva-motivo-desc').value='';
+  const msg=document.getElementById('reserva-save-msg');
+  msg.textContent='Registrado com sucesso!';
+  setTimeout(()=>msg.textContent='',3000);
+  renderReserva();calcTotais();
+};
+
+// Deletar movimentação Reserva Carro
+window.deleteReservaMov = async function(id){
+  if(!confirm('Excluir esta movimentação?'))return;
+  try{await deleteDoc(doc(db,'reserva',id));}catch(e){}
+  saveReservaMovs(getReservaMovs().filter(m=>m.id!==id));
+  renderReserva();calcTotais();
+};
+
 // Carregar todos os dados do Firestore
 async function carregarDadosFirestore(){
   try{
@@ -1013,6 +1192,12 @@ async function carregarDadosFirestore(){
     poupSnap.forEach(d=>movs.push(d.data()));
     localStorage.setItem('frango-poup-movs',JSON.stringify(movs));
 
+    // Carregar reserva carro
+    const reservaSnap=await getDocs(collection(db,'reserva'));
+    const movsReserva=[];
+    reservaSnap.forEach(d=>movsReserva.push(d.data()));
+    localStorage.setItem('frango-reserva-movs',JSON.stringify(movsReserva));
+
     // Atualizar UI
     onDateChange();
     renderSaidas();
@@ -1020,6 +1205,7 @@ async function carregarDadosFirestore(){
     atualizarSelectPoupanca();
     renderHistorico();
     renderPoupanca();
+    renderReserva();
     renderResumo();
     console.log('Dados carregados do Firestore!');
   }catch(e){
