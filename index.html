@@ -505,20 +505,17 @@ function carregarDiaSalvo(date){
   saidasVals={};
   saidasDesc={};
   const saved=getSavedDay(date);
+  // sempre calcula o saldo atualizado do dia anterior
+  const anterior=getDiaAnterior(date);
+  const saldoAnterior=anterior?calcSaldoDia(anterior):0;
   if(saved){
-    // dia já registrado: carrega tudo
-    document.getElementById('saldo-conta').value=fmtInput(saved.saldoConta);
+    document.getElementById('saldo-conta').value=fmtInput(saldoAnterior);
     document.getElementById('vendas-marluce').value=fmtInput(saved.vendasMarluce);
     document.getElementById('vendas-priscilla').value=fmtInput(saved.vendasPriscilla);
     saidasVals=saved.saidas||{};
     saidasDesc=saved.saidasDesc||{};
   } else {
-    // dia novo: preenche saldo anterior com saldo atualizado do dia anterior
-    const anterior=getDiaAnterior(date);
-    if(anterior){
-      const saldoHerdado=calcSaldoDia(anterior);
-      document.getElementById('saldo-conta').value=fmtInput(saldoHerdado);
-    }
+    if(saldoAnterior>0)document.getElementById('saldo-conta').value=fmtInput(saldoAnterior);
   }
   renderSaidas();calcTotais();
 }
@@ -770,7 +767,7 @@ function renderReserva(){
         <div class="hist-row"><span>Valor</span><span>${fmt(m.valor)}</span></div>
         <div class="hist-row"><span>Motivo</span><span>${m.motivo}</span></div>
         <div class="hist-row"><span>Saldo após</span><span style="color:var(--orange)">${fmt(saldoMap[m.id])}</span></div>
-        ${!m.auto?`<div class="hist-actions"><button class="btn btn-sm btn-danger" onclick="deleteReservaMov('${m.id}')">🗑 Excluir</button></div>`:''}
+        <div class="hist-actions"><button class="btn btn-sm btn-danger" onclick="deleteReservaMov('${m.id}')">🗑 Excluir</button></div>
       </div>
     </div>`;
   }).join('');
